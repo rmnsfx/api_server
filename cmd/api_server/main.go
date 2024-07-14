@@ -2,30 +2,32 @@ package main
 
 import (
 	"api_server/internal/config"
-	"fmt"
+	"api_server/internal/storage/sqlite"
+
+	// "fmt"
 	"log/slog"
 	"os"
 )
 
 const (
-    envLocal = "local"
-    envDev   = "dev"
-    envProd  = "prod"
+	envLocal = "local"
+	envDev   = "dev"
+	envProd  = "prod"
 )
 
 func setupLogger(env string) *slog.Logger {
-    var log *slog.Logger
+	var log *slog.Logger
 
-    switch env {
-    case envLocal:
-        log = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
-    case envDev:
-        log = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
-    case envProd:
-        log = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
-    }
+	switch env {
+	case envLocal:
+		log = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	case envDev:
+		log = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	case envProd:
+		log = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
+	}
 
-    return log
+	return log
 }
 
 func main() {
@@ -36,14 +38,21 @@ func main() {
 
 	/* slog */
 	log := setupLogger(cfg.Env)
-    log = log.With(slog.String("env", cfg.Env)) // к каждому сообщению будет добавляться поле с информацией о текущем окружении
+	log = log.With(slog.String("env", cfg.Env)) // к каждому сообщению будет добавляться поле с информацией о текущем окружении
 
-    log.Info("Initializing server", slog.String("address", cfg.Address)) // Помимо сообщения выведем параметр с адресом
-    log.Debug("Logger debug mode enabled")
+	log.Info("Initializing server", slog.String("address", cfg.Address)) // Помимо сообщения выведем параметр с адресом
+	log.Debug("Logger debug mode enabled")
 
-	// storage
+	/* storage */
+	storage, err := sqlite.New(cfg.StoragePath)
+	if err != nil {
+		log.Error("Failed to initialize storage", err)
+	}
+	
+    storage.SaveGameLaunch("device")
 
-	// chi
+	/* chi */
+
 
 	// test
 
