@@ -3,10 +3,14 @@ package main
 import (
 	"api_server/internal/config"
 	"api_server/internal/storage/sqlite"
+	"net/http"
 
 	// "fmt"
 	"log/slog"
 	"os"
+
+	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/middleware"
 )
 
 const (
@@ -38,7 +42,7 @@ func main() {
 
 	/* slog */
 	log := setupLogger(cfg.Env)
-	log = log.With(slog.String("env", cfg.Env)) // к каждому сообщению будет добавляться поле с информацией о текущем окружении
+	log = log.With(slog.String("env", cfg.Env)) // К каждому сообщению будет добавляться поле с информацией о текущем окружении
 
 	log.Info("Initializing server", slog.String("address", cfg.Address)) // Помимо сообщения выведем параметр с адресом
 	log.Debug("Logger debug mode enabled")
@@ -51,7 +55,30 @@ func main() {
 	
     storage.SaveGameLaunch("device")
 
-	/* chi */
+	/* middleware */
+    router := chi.NewRouter()  
+  
+    router.Use(middleware.RequestID) // Добавляет request_id в каждый запрос, для трейсинга
+    router.Use(middleware.Logger) // Логирование всех запросов
+    router.Use(middleware.Recoverer)  // Если где-то внутри сервера (обработчика запроса) произойдет паника, приложение не должно упасть
+    router.Use(middleware.URLFormat) // Парсер URLов поступающих запросов
+
+    /* http server (chi) */
+    log.Info("Server start... ", slog.String("address", cfg.Address) )
+
+    srv := &http.Server{
+		Addr:         cfg.Address,
+		Handler:      router,
+		ReadTimeout:  cfg.HTTPServer.Timeout,
+		WriteTimeout: cfg.HTTPServer.Timeout,
+		IdleTimeout:  cfg.HTTPServer.IdleTimeout,
+	}
+
+    if err := srv.ListenAndServe(); err != nil {
+        log.Error("Failed to start server")
+    }
+
+    log.Info("Stopping server")
 
 
 	// test
