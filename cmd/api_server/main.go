@@ -3,9 +3,10 @@ package main
 import (
 	"api_server/internal/config"
 	"api_server/internal/storage/sqlite"
+    "api_server/internal/server/handlers"
+	// "fmt"
 	"net/http"
 
-	// "fmt"
 	"log/slog"
 	"os"
 
@@ -52,8 +53,8 @@ func main() {
 	if err != nil {
 		log.Error("Failed to initialize storage", err)
 	}
-	
-    storage.SaveGameLaunch("device")
+	_ = storage
+    // storage.SaveGameLaunch("device", "192.168.0.1")
 
 	/* middleware */
     router := chi.NewRouter()  
@@ -73,6 +74,13 @@ func main() {
 		WriteTimeout: cfg.HTTPServer.Timeout,
 		IdleTimeout:  cfg.HTTPServer.IdleTimeout,
 	}
+
+	// router.Post("/launch", func(w http.ResponseWriter, r *http.Request) {
+    //     // fmt.Println(r)
+    //     w.Write([]byte("Ok"))
+	// })
+
+    router.Post("/launch", save.New(log, storage))
 
     if err := srv.ListenAndServe(); err != nil {
         log.Error("Failed to start server")

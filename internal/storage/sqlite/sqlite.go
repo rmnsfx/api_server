@@ -26,6 +26,7 @@ func New(storagePath string) (*Storage, error) {
     CREATE TABLE IF NOT EXISTS connection(
         id INTEGER PRIMARY KEY,
         device TEXT NOT NULL,
+        ip TEXT,
         datetime DATETIME CURRENT_TIMESTAMP);
     CREATE INDEX IF NOT EXISTS idx_device ON connection(device);
     `)
@@ -41,17 +42,17 @@ func New(storagePath string) (*Storage, error) {
     return &Storage{db: db}, nil
 }
 
-func (s *Storage) SaveGameLaunch(deviceToSave string) (int64, error) {
-    const op = "storage.sqlite.SaveURL"
+func (s *Storage) SaveGameLaunch(deviceToSave string, ip string) (int64, error) {
+    const op = "storage.sqlite.SaveGameLaunch"
 
     // Подготавливаем запрос
-    stmt, err := s.db.Prepare("INSERT INTO connection(device, datetime) values(?, CURRENT_TIMESTAMP)")
+    stmt, err := s.db.Prepare("INSERT INTO connection(device, ip, datetime) values(?, ?, CURRENT_TIMESTAMP)")
     if err != nil {
         return 0, fmt.Errorf("%s: prepare statement: %w", op, err)
     }
 
     // Выполняем запрос
-    res, err := stmt.Exec(deviceToSave)
+    res, err := stmt.Exec(deviceToSave, ip)
     if err != nil {
         if sqliteErr, ok := err.(sqlite3.Error); ok && sqliteErr.ExtendedCode == sqlite3.ErrConstraintUnique {
             return 0, fmt.Errorf("%s: %w", op, storage.ErrURLExists)
